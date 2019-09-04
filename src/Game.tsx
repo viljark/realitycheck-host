@@ -3,10 +3,11 @@ import React from 'react';
 import PubNub from 'pubnub';
 
 import './App.css';
-import { ClientEvent, Message } from './ApiTypes';
+import { ClientEvent, ClientHelloMessage, MessageContent } from './ApiTypes';
 
 export interface AppProps {
-
+  channelId: string;
+  name: string;
 }
 
 export interface State {
@@ -14,8 +15,6 @@ export interface State {
   events: any[];
 }
 
-
-export const CHANNEL_NAME = 'game';
 
 export class Game extends React.Component<AppProps, State> {
   private pubnub: PubNub;
@@ -37,7 +36,7 @@ export class Game extends React.Component<AppProps, State> {
 
   componentDidMount() {
     this.pubnub.subscribe({
-      channels: [CHANNEL_NAME],
+      channels: [this.props.channelId],
       withPresence: true
     });
 
@@ -54,18 +53,25 @@ export class Game extends React.Component<AppProps, State> {
     this.pubnub.unsubscribeAll();
   }
 
-
-  handleHello = () => {
-    const hello: Message = {
-      type: ClientEvent.HELLO,
-      value: 'Viljar',
-    };
+  send = (message: MessageContent<any>) => {
     this.pubnub.publish({
-      channel : CHANNEL_NAME,
-      message : {"sender": this.uuid, "content": hello}
-    }, function(status, response) {
+      channel: this.props.channelId,
+      message: {
+        sender: this.uuid,
+        content: message,
+      },
+    }, (status, response) => {
       //Handle error here
     });
+  };
+
+
+  handleHello = () => {
+    const hello: ClientHelloMessage = {
+      type: ClientEvent.HELLO,
+      value: this.props.name,
+    };
+    this.send(hello);
   }
 
   render() {

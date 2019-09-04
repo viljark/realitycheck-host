@@ -1,7 +1,32 @@
 .events {
-    max-height: 200px;
+    height: 200px;
     overflow-y: auto;
 }
 .events__event {
+    margin-bottom: 10px;
+    padding: 3px;
+    border: 1px dashed rgba(255,255,255, .5);
+}
+.main {
+    padding: 2vw;
+    display: flex;
+    position: relative;
+}
+.qr {
+    position: fixed;
+    left: 2vw;
+    bottom: 0;
+}
+.question {
+    font-size: 44px;
+}
 
+.debug {
+    width: 50%;
+    flex-shrink: 0;
+}
+
+.game {
+    width: 50%;
+    flex-shrink: 0;
 }

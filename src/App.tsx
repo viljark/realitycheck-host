@@ -4,37 +4,23 @@ import PubNub from 'pubnub';
 import QRCode from 'qrcode.react';
 import './App.css';
 import Game from './Game';
-import { ClientEvent, GameEvent } from './ApiTypes';
+import {
+  Answer,
+  Client,
+  ClientAnswerMessage,
+  ClientEvent,
+  ClientHelloMessage,
+  GameEndMessage,
+  GameEvent,
+  GameQuestionMessage,
+  GameRoundEndMessage,
+  GameStartMessage,
+  Message,
+  MessageContent
+} from './ApiTypes';
 
 export interface AppProps {
 
-}
-
-interface Message<T> {
-  sender: string;
-  content: T;
-}
-
-interface MessageContent<T, V> {
-  type: T;
-  value: V;
-}
-
-type ClientHelloMessage = MessageContent<ClientEvent.HELLO, string>;
-
-type GameQuestionMessage = MessageContent<GameEvent.QUESTION, {
-  to: string,
-  question: string,
-  options: Client[]
-}>
-
-type ClientAnswerMessage = MessageContent<ClientEvent.ANSWER, {
-  clientId: string
-}>
-
-interface Client {
-  clientId: string;
-  name: string;
 }
 
 enum GameState {
@@ -45,24 +31,19 @@ enum GameState {
   DISPLAY_RESULTS = 'DISPLAY_RESULTS',
 }
 
-interface Answer {
-  clientId: string,
-  question: string
-}
-
 export interface State {
   message: string;
   events: PubNub.MessageEvent[];
   clients: Client[];
   questions: string[];
+  allQuestions: string[];
   gameState: GameState;
   activeClient: string;
   activeQuestion: string;
   answers: Answer[],
 }
 
-
-export const CHANNEL_NAME = 'game';
+const QUESTION_COUNT = 3;
 
 export class App extends React.Component<AppProps, State> {
   private pubnub: PubNub;
@@ -84,6 +65,7 @@ export class App extends React.Component<AppProps, State> {
       events: [],
       clients: [],
       questions: [],
+      allQuestions: [],
       gameState: GameState.WAITING_CLIENTS,
       activeClient: '',
       activeQuestion: '',
@@ -93,7 +75,7 @@ export class App extends React.Component<AppProps, State> {
 
   componentDidMount() {
     this.pubnub.subscribe({
-      channels: [CHANNEL_NAME],
+      channels: [this.channelId],
       withPresence: true
     });
 
@@ -127,6 +109,7 @@ export class App extends React.Component<AppProps, State> {
       console.log('result', result.values.map((v: any) => v.join()));
       this.setState({
         questions: result.values.map((v: any) => v.join()),
+        allQuestions: result.values.map((v: any) => v.join()),
       })
     })
   }
@@ -164,37 +147,21 @@ export class App extends React.Component<AppProps, State> {
           }],
       });
     }
-  }
+  };
 
   handleANSWER = (e: Message<ClientAnswerMessage>) => {
     if (this.state.gameState !== GameState.WAITING_ANSWER) {
       return;
     }
+
+    const answer: Answer = {
+      question: this.state.activeQuestion,
+      clientId: e.content.value.clientId
+    };
     this.setState({
       gameState: GameState.DISPLAY_ANSWER,
-      answers: [...this.state.answers, {
-        question: this.state.activeQuestion,
-        clientId: e.content.value.clientId
-      }]
+      answers: [...this.state.answers, answer]
     });
-
-    setTimeout(() => {
-      if (this.state.questions.length === 0) {
-        this.setState({
-          gameState: GameState.DISPLAY_RESULTS,
-        })
-      } else {
-        const activeClientIndex = this.state.clients.findIndex((c) => c.clientId === this.state.activeClient);
-        let newActiveClientIndex = 0;
-        if (activeClientIndex + 1 < this.state.clients.length) {
-          newActiveClientIndex = activeClientIndex + 1;
-        }
-        this.setState({
-          activeClient: this.state.clients[newActiveClientIndex].clientId,
-          gameState: GameState.SEND_QUESTION,
-        })
-      }
-    }, 1 * 1000);
   };
 
   handleBYE = (e: Message<ClientAnswerMessage>) => {
@@ -203,17 +170,17 @@ export class App extends React.Component<AppProps, State> {
     }
   };
 
-  send = (message: MessageContent<GameEvent | ClientEvent, any>) => {
+  send = (message: MessageContent<any>) => {
     this.pubnub.publish({
-      channel: CHANNEL_NAME,
+      channel: this.channelId,
       message: {
         sender: this.uuid,
         content: message,
       },
-    }, function (status, response) {
+    }, (status, response) => {
       //Handle error here
     });
-  }
+  };
 
   handleEnter = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const key = e.key;
@@ -244,8 +211,15 @@ export class App extends React.Component<AppProps, State> {
 
   startGame = () => {
     this.setState({
+      questions: shuffle(this.state.allQuestions.slice()).slice(0, QUESTION_COUNT),
       gameState: GameState.SEND_QUESTION,
     });
+
+    const gameStartMessage: GameStartMessage = {
+      type: GameEvent.START,
+      value: this.state.clients,
+    };
+    this.send(gameStartMessage)
   }
 
   componentDidUpdate(prevProps: Readonly<AppProps>, prevState: Readonly<State>, snapshot?: any): void {
@@ -253,6 +227,12 @@ export class App extends React.Component<AppProps, State> {
       // gameState updated, lets handle the cases here
       if (this.state.gameState === GameState.SEND_QUESTION) {
         this.handleSendQuestion();
+      }
+      if (this.state.gameState === GameState.DISPLAY_ANSWER) {
+        this.handleDisplayAnswer();
+      }
+      if (this.state.gameState === GameState.DISPLAY_RESULTS) {
+        this.handleDisplayResults();
       }
     }
   }
@@ -283,7 +263,7 @@ export class App extends React.Component<AppProps, State> {
     const questionMessage: GameQuestionMessage = {
       type: GameEvent.QUESTION,
       value: {
-        options: this.state.clients,
+        players: this.state.clients,
         question: this.getUniqueQuestion(),
         to: activeClient,
       }
@@ -294,21 +274,55 @@ export class App extends React.Component<AppProps, State> {
     })
   };
 
+  handleDisplayAnswer = () => {
+    const roundEndMessage: GameRoundEndMessage = {
+      value: this.state.answers.reverse()[0],
+      type: GameEvent.ROUND_END
+    };
+    this.send(roundEndMessage);
+
+    setTimeout(() => {
+      if (this.state.questions.length === 0) {
+        this.setState({
+          gameState: GameState.DISPLAY_RESULTS,
+        });
+      } else {
+        const activeClientIndex = this.state.clients.findIndex((c) => c.clientId === this.state.activeClient);
+        let newActiveClientIndex = 0;
+        if (activeClientIndex + 1 < this.state.clients.length) {
+          newActiveClientIndex = activeClientIndex + 1;
+        }
+        this.setState({
+          activeClient: this.state.clients[newActiveClientIndex].clientId,
+          gameState: GameState.SEND_QUESTION,
+        })
+      }
+    }, 1 * 1000);
+  };
+
+  handleDisplayResults = () => {
+    const gameEndMessage: GameEndMessage = {
+      value: this.state.answers,
+      type: GameEvent.END
+    };
+    this.send(gameEndMessage);
+  };
+
   render() {
     return (
-      <div>
-        <div>
-          <h1>{this.state.gameState} {this.getClientName(this.state.activeClient)}</h1>
-          <h1> {
+      <div className="main">
+        <div className="game">
+          <div className="block question"> {
             (this.state.gameState === GameState.WAITING_ANSWER ||
-              this.state.gameState === GameState.DISPLAY_ANSWER) && this.state.activeQuestion}</h1>
-          <h1>{this.state.gameState === GameState.DISPLAY_ANSWER && (
-            this.getClientName(this.state.answers.reverse()[0].clientId)
-          )}</h1>
+              this.state.gameState === GameState.DISPLAY_ANSWER) && this.state.activeQuestion}</div>
+          <div className="block answer">{this.state.gameState === GameState.DISPLAY_ANSWER && (
+            // this.getClientName(this.state.answers.reverse()[0].clientId)
+            <p>answer hidden</p>
+          )}</div>
           {this.state.gameState === GameState.DISPLAY_RESULTS && (
-            <ul>
+            <ul className="block answers">
               {Object.keys(groupBy(this.state.answers, 'clientId')).map((keyName, i) => (
-                <li>
+                <li className="answers__person">
                   {this.getClientName(keyName)}
                   {groupBy(this.state.answers, 'clientId')[keyName].map((a: Answer) => (
                     <p>{a.question}</p>
@@ -318,9 +332,14 @@ export class App extends React.Component<AppProps, State> {
             </ul>
           )
           }
-          <QRCode value={this.channelId} size={200}/>
-          <h4>channel: {this.channelId}</h4>
-          <div>
+          <div className="block qr">
+            <QRCode value={this.channelId} size={200}/>
+            <h4>channel: {this.channelId}</h4>
+          </div>
+        </div>
+        <div className="debug">
+          <div className="block gamestate">{this.state.gameState} {this.getClientName(this.state.activeClient)}</div>
+          <div className="block events-wrap">
             <h3>Events</h3>
             <div className="events" ref={this.eventContainerRef}>
               {this.state.events.map((e) => (
@@ -330,7 +349,7 @@ export class App extends React.Component<AppProps, State> {
               ))}
             </div>
           </div>
-          <div>
+          <div className="block clients-wrap">
             <h3>Clients</h3>
             <div className="clients">
               {this.state.clients.map((c, i) => (
@@ -362,11 +381,11 @@ export class App extends React.Component<AppProps, State> {
               ))}
             </div>
           </div>
-
+          <textarea onChange={this.handleChange} value={this.state.message} onKeyDown={this.handleEnter}/>
+          <button onClick={this.startGame}>Start</button>
+          <Game channelId={this.channelId} name="Test 1"/>
+          <Game channelId={this.channelId} name="Test 2"/>
         </div>
-        <textarea onChange={this.handleChange} value={this.state.message} onKeyDown={this.handleEnter}/>
-        <button onClick={this.startGame}>Start</button>
-        <Game/>
       </div>
     );
   }
@@ -382,5 +401,26 @@ const groupBy = (items: any[], key: string) => items.reduce(
   }),
   {},
 );
+
+function shuffle (array: any[]) {
+
+  var currentIndex = array.length;
+  var temporaryValue, randomIndex;
+
+  // While there remain elements to shuffle...
+  while (0 !== currentIndex) {
+    // Pick a remaining element...
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex -= 1;
+
+    // And swap it with the current element.
+    temporaryValue = array[currentIndex];
+    array[currentIndex] = array[randomIndex];
+    array[randomIndex] = temporaryValue;
+  }
+
+  return array;
+
+};
 
 export default App;
