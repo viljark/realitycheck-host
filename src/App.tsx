@@ -1,5 +1,6 @@
 import React from 'react';
-
+import JSONPretty from 'react-json-pretty';
+import 'react-json-pretty/themes/monikai.css';
 import PubNub from 'pubnub';
 import QRCode from 'qrcode.react';
 import './App.css';
@@ -127,6 +128,9 @@ export class App extends React.Component<AppProps, State> {
   };
 
   getSenderName = (e: PubNub.MessageEvent) => {
+    if (e.message.sender === this.uuid) {
+      return "Host";
+    }
     const sender = this.state.clients.find((c) => e.message && c.clientId === e.message.sender);
     if (sender) {
       return sender.name;
@@ -344,7 +348,7 @@ export class App extends React.Component<AppProps, State> {
             <div className="events" ref={this.eventContainerRef}>
               {this.state.events.map((e) => (
                 <div className="events__event" key={e.timetoken}>
-                  {this.getSenderName(e)} :: {JSON.stringify(e.message.content)}
+                  {this.getSenderName(e)} :: <JSONPretty id="json-pretty"  json={e.message.content}/>
                 </div>
               ))}
             </div>
@@ -374,7 +378,7 @@ export class App extends React.Component<AppProps, State> {
                       };
                       this.send(answer);
                     }}>
-                      Send answer myseld
+                      Send answer myself
                     </button>
                   )}
                 </div>
