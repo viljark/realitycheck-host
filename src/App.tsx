@@ -8,9 +8,9 @@ import Game from './Game';
 import {
   Answer,
   Client,
-  ClientAnswerMessage,
+  ClientAnswerMessage, ClientByeMessage,
   ClientEvent,
-  ClientHelloMessage,
+  ClientHelloMessage, GameClientJoinedMessage, GameClientLeftMessage,
   GameEndMessage,
   GameEvent,
   GameQuestionMessage,
@@ -42,9 +42,8 @@ export interface State {
   activeClient: string;
   activeQuestion: string;
   answers: Answer[],
+  questionCount: number | undefined,
 }
-
-const QUESTION_COUNT = 3;
 
 export class App extends React.Component<AppProps, State> {
   private pubnub: PubNub;
@@ -71,6 +70,7 @@ export class App extends React.Component<AppProps, State> {
       activeClient: '',
       activeQuestion: '',
       answers: [],
+      questionCount: 3,
     }
   }
 
@@ -91,6 +91,13 @@ export class App extends React.Component<AppProps, State> {
         }
         if (event.message.content.type === ClientEvent.BYE) {
           this.handleBYE(event.message);
+        }
+        if (event.message.content.type === ClientEvent.START_GAME) {
+          if (this.state.clients.find((c) => c.clientId === event.message.sender)) {
+            this.startGame();
+          } else {
+            alert('not client!');
+          }
         }
 
         this.setState({
@@ -149,6 +156,12 @@ export class App extends React.Component<AppProps, State> {
             clientId: e.sender,
             name: e.content.value,
           }],
+      }, () => {
+        const gameClientJoinedMessage: GameClientJoinedMessage = {
+          value: this.state.clients,
+          type: GameEvent.CLIENT_JOINED,
+        };
+        this.send(gameClientJoinedMessage);
       });
     }
   };
@@ -168,10 +181,16 @@ export class App extends React.Component<AppProps, State> {
     });
   };
 
-  handleBYE = (e: Message<ClientAnswerMessage>) => {
-    if (this.state.gameState !== GameState.WAITING_ANSWER) {
-      return;
-    }
+  handleBYE = (e: Message<ClientByeMessage>) => {
+    this.setState({
+      clients: this.state.clients.filter((c) => c.clientId !== e.sender),
+    }, () => {
+      const gameClientLeftMessage: GameClientLeftMessage = {
+        value: this.state.clients,
+        type: GameEvent.CLIENT_LEFT,
+      };
+      this.send(gameClientLeftMessage);
+    })
   };
 
   send = (message: MessageContent<any>) => {
@@ -215,7 +234,7 @@ export class App extends React.Component<AppProps, State> {
 
   startGame = () => {
     this.setState({
-      questions: shuffle(this.state.allQuestions.slice()).slice(0, QUESTION_COUNT),
+      questions: shuffle(this.state.allQuestions.slice()).slice(0, this.state.questionCount),
       gameState: GameState.SEND_QUESTION,
     });
 
@@ -338,6 +357,17 @@ export class App extends React.Component<AppProps, State> {
           }
           <div className="block qr">
             <QRCode value={this.channelId} size={200}/>
+            <div>
+              <label>
+                Question count <br/>
+                <input type="text" value={this.state.questionCount} onChange={(e) => {
+                  const value = Number(e.target.value);
+                  this.setState({
+                    questionCount: value || undefined ,
+                  })
+                }}/>
+              </label>
+            </div>
             <h4>channel: {this.channelId}</h4>
           </div>
         </div>

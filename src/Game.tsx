@@ -3,7 +3,7 @@ import React from 'react';
 import PubNub from 'pubnub';
 
 import './App.css';
-import { ClientEvent, ClientHelloMessage, MessageContent } from './ApiTypes';
+import { ClientByeMessage, ClientEvent, ClientHelloMessage, MessageContent } from './ApiTypes';
 
 export interface AppProps {
   channelId: string;
@@ -74,10 +74,28 @@ export class Game extends React.Component<AppProps, State> {
     this.send(hello);
   }
 
+  handleStart = () => {
+    const hello: ClientHelloMessage = {
+      type: ClientEvent.START_GAME,
+      value: '',
+    };
+    this.send(hello);
+  }
+
+  handleBye = () => {
+    const bye: ClientByeMessage = {
+      type: ClientEvent.BYE,
+      value: '',
+    };
+    this.send(bye);
+  }
+
   render() {
     return (
       <div>
         <button onClick={this.handleHello}>Hello</button>
+        <button onClick={this.handleBye}>Bye</button>
+        <button onClick={this.handleStart}>Start game</button>
       </div>
     );
   }

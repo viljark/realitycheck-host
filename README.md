@@ -1,44 +1,57 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# Client prerequisites (Expo)
+https://docs.expo.io/versions/latest/introduction/installation/
 
-## Available Scripts
+`npm install -g expo-cli` ~ 130.63 MiB
 
-In the project directory, you can run:
+download the expo app to your phone
 
-### `npm start`
+https://docs.expo.io/versions/latest/workflow/up-and-running/
 
-Runs the app in the development mode.<br>
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+and using typescript - https://docs.expo.io/versions/v34.0.0/guides/typescript/
 
-The page will reload if you make edits.<br>
-You will also see any lint errors in the console.
+`expo init`
 
-### `npm test`
+any config/setup issues? see https://github.com/viljark/eesti-ilm
 
-Launches the test runner in the interactive watch mode.<br>
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
 
-### `npm run build`
+# Reality check host
 
-Builds the app for production to the `build` folder.<br>
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## this is a simple host and game manager for reality check card game
 
-The build is minified and the filenames include the hashes.<br>
-Your app is ready to be deployed!
+### the client has to implement the following logic:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (Webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+- connecting to a game host (QR code is the channel ID)
+- initialize the PubNub client with the application's publish and subscribe keys
+- ```     
+  this.uuid = PubNub.generateUUID(); // this will be the ID host will use to identify you
+  this.pubnub = new PubNub({
+    publishKey: 'pub-c-bd289ae2-d65d-4100-8ddd-a514558bbf7a',
+    subscribeKey: 'sub-c-51d1abbe-ce3b-11e9-9b51-8ae91c2a8a9f',
+    uuid: this.uuid
+  });
+  ```  
+- connect to the channelId you received from the QR code
+- ```
+    this.pubnub.subscribe({
+      channels: [this.props.channelId],
+      withPresence: true
+    });
+  ```
+- handle the Game events when it is your turn, and send the client events when needed
+    - Send `Message<ClientHelloMessage>` to introduce yourself and register to host, See `ApiTypes.ts` for details.
+    - Send `Message<ClientAnswerMessage>` when it is your turn and you want to send an answer, See `ApiTypes.ts` for details.
+    - Handle `Message<GameClientJoinedMessage>`, you'll receive `Client[]`as value (list of players)
+    - Handle `Message<GameClientLeftMessage>`, you'll receive `Client[]`as value (list of players)
+    - Handle `Message<GameStartMessage>`, you'll receive `Client[]`as value (list of players)
+    - Handle `Message<GameQuestionMessage>`, you'll receive ``{
+                                                       to: string,
+                                                       question: string,
+                                                       players: Client[]
+                                                     }`` as response, where 
+                                                    
+        - to: player who this question is addressed
+        - question: question text
+        - players: list of players 
+        
+    - Handle `Message<GameRoundEndMessage>`, you'll receive `Answer`
+    - Handle `Message<GameEndMessage>`, you'll receive `Answer[]`
