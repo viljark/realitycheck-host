@@ -19,7 +19,7 @@ any config/setup issues? see https://github.com/viljark/eesti-ilm
 ## this is a simple host and game manager for reality check card game
 
 ### the client has to implement the following logic:
-
+- https://www.pubnub.com/docs/web-javascript/pubnub-javascript-sdk
 - connecting to a game host (QR code is the channel ID)
 - initialize the PubNub client with the application's publish and subscribe keys
 - ```     

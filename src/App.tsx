@@ -455,6 +455,6 @@ function shuffle (array: any[]) {
 
   return array;
 
-};
+}
 
 export default App;
