@@ -83,21 +83,25 @@ export class App extends React.Component<AppProps, State> {
     this.pubnub.addListener({
       message: (event) => {
         console.log('got message', event);
-        if (event.message.content.type === ClientEvent.HELLO) {
-          this.handleHELLO(event.message);
-        }
-        if (event.message.content.type === ClientEvent.ANSWER) {
-          this.handleANSWER(event.message);
-        }
-        if (event.message.content.type === ClientEvent.BYE) {
-          this.handleBYE(event.message);
-        }
-        if (event.message.content.type === ClientEvent.START_GAME) {
-          if (this.state.clients.find((c) => c.clientId === event.message.sender && c.vip)) {
-            this.startGame();
-          } else {
-            alert('not client or VIP!');
+        if (event.message.content) {
+          if (event.message.content.type === ClientEvent.HELLO) {
+            this.handleHELLO(event.message);
           }
+          if (event.message.content.type === ClientEvent.ANSWER) {
+            this.handleANSWER(event.message);
+          }
+          if (event.message.content.type === ClientEvent.BYE) {
+            this.handleBYE(event.message);
+          }
+          if (event.message.content.type === ClientEvent.START_GAME) {
+            if (this.state.clients.find((c) => c.clientId === event.message.sender && c.vip)) {
+              this.startGame();
+            } else {
+              alert('not client or VIP!');
+            }
+          }
+        } else {
+          console.warn("message with no content!");
         }
 
         this.setState({
@@ -135,8 +139,11 @@ export class App extends React.Component<AppProps, State> {
   };
 
   getSenderName = (e: PubNub.MessageEvent) => {
+    if (!e.message) {
+      return '';
+    }
     if (e.message.sender === this.uuid) {
-      return "Host";
+      return 'Host';
     }
     const sender = this.state.clients.find((c) => e.message && c.clientId === e.message.sender);
     if (sender) {
@@ -366,7 +373,7 @@ export class App extends React.Component<AppProps, State> {
                 <input type="text" value={this.state.questionCount} onChange={(e) => {
                   const value = Number(e.target.value);
                   this.setState({
-                    questionCount: value || undefined ,
+                    questionCount: value || undefined,
                   })
                 }}/>
               </label>
@@ -381,7 +388,7 @@ export class App extends React.Component<AppProps, State> {
             <div className="events" ref={this.eventContainerRef}>
               {this.state.events.map((e) => (
                 <div className="events__event" key={e.timetoken}>
-                  {this.getSenderName(e)} :: <JSONPretty id="json-pretty"  json={e.message.content}/>
+                  {this.getSenderName(e)} :: <JSONPretty id="json-pretty" json={e.message.content ? e.message.content : e.message}/>
                 </div>
               ))}
             </div>
@@ -439,7 +446,7 @@ const groupBy = (items: any[], key: string) => items.reduce(
   {},
 );
 
-function shuffle (array: any[]) {
+function shuffle(array: any[]) {
 
   var currentIndex = array.length;
   var temporaryValue, randomIndex;
