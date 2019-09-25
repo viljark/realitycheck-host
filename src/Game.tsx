@@ -3,7 +3,7 @@ import React from 'react';
 import PubNub from 'pubnub';
 
 import './App.css';
-import { ClientByeMessage, ClientEvent, ClientHelloMessage, MessageContent } from './ApiTypes';
+import { ClientByeMessage, ClientEvent, ClientHelloMessage, ClientStartGameMessage, MessageContent } from './ApiTypes';
 
 export interface AppProps {
   channelId: string;
@@ -75,7 +75,7 @@ export class Game extends React.Component<AppProps, State> {
   }
 
   handleStart = () => {
-    const hello: ClientHelloMessage = {
+    const hello: ClientStartGameMessage = {
       type: ClientEvent.START_GAME,
       value: '',
     };

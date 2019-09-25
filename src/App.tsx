@@ -357,7 +357,9 @@ export class App extends React.Component<AppProps, State> {
           )
           }
           <div className="block qr">
-            <QRCode value={this.channelId} size={200}/>
+            <div className="qr__code">
+              <QRCode value={this.channelId} size={200}/>
+            </div>
             <div>
               <label>
                 Question count <br/>

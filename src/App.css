@@ -17,6 +17,11 @@
     left: 2vw;
     bottom: 0;
 }
+.qr__code {
+    display: inline-block;
+    background: #fff;
+    padding: 15px;
+}
 .question {
     font-size: 44px;
 }
