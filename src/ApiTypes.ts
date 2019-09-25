@@ -55,6 +55,7 @@ export type ClientStartGameMessage = MessageContent<any>;
 export interface Client {
   clientId: string;
   name: string;
+  vip?: boolean;
 }
 
 export interface Answer {

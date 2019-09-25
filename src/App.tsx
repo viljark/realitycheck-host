@@ -93,10 +93,10 @@ export class App extends React.Component<AppProps, State> {
           this.handleBYE(event.message);
         }
         if (event.message.content.type === ClientEvent.START_GAME) {
-          if (this.state.clients.find((c) => c.clientId === event.message.sender)) {
+          if (this.state.clients.find((c) => c.clientId === event.message.sender && c.vip)) {
             this.startGame();
           } else {
-            alert('not client!');
+            alert('not client or VIP!');
           }
         }
 
@@ -155,6 +155,7 @@ export class App extends React.Component<AppProps, State> {
           {
             clientId: e.sender,
             name: e.content.value,
+            vip: this.state.clients.length === 0,
           }],
       }, () => {
         const gameClientJoinedMessage: GameClientJoinedMessage = {
