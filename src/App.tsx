@@ -233,10 +233,16 @@ export class App extends React.Component<AppProps, State> {
     });
   }
 
+
   handleClientRemove = (client: Client) => {
     this.setState({
       clients: this.state.clients.filter((c) => c.clientId !== client.clientId),
-
+    }, () => {
+      const gameClientLeftMessage: GameClientLeftMessage = {
+        value: this.state.clients,
+        type: GameEvent.CLIENT_LEFT,
+      };
+      this.send(gameClientLeftMessage);
     })
   };
 
