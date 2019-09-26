@@ -280,12 +280,15 @@ export class App extends React.Component<AppProps, State> {
         activeClient,
       });
     }
+
+    const client = this.state.clients.find((c) => c.clientId === activeClient);
     const questionMessage: GameQuestionMessage = {
       type: GameEvent.QUESTION,
       value: {
         players: this.state.clients,
         question: this.getUniqueQuestion(),
         to: activeClient,
+        playerName: client ? client.name : '',
       }
     };
     this.send(questionMessage);

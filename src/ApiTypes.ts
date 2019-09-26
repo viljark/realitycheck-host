@@ -22,6 +22,7 @@ export interface Message<T> {
 
 export interface Question {
   to: string,
+  playerName: string,
   question: string,
   players: Client[]
 }
