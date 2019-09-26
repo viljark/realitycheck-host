@@ -175,9 +175,12 @@ export class App extends React.Component<AppProps, State> {
   };
 
   handleANSWER = (e: Message<ClientAnswerMessage>) => {
-    if (this.state.gameState !== GameState.WAITING_ANSWER || e.sender !== this.state.activeClient) {
+    const isSenderAllowed = e.sender === this.state.activeClient || e.sender === this.uuid;
+
+    if (this.state.gameState !== GameState.WAITING_ANSWER || !isSenderAllowed) {
       return;
     }
+
     const client = this.state.clients.find((c) => c.clientId === e.content.value.clientId);
     const answer: Answer = {
       question: this.state.activeQuestion,
@@ -252,7 +255,7 @@ export class App extends React.Component<AppProps, State> {
       questions: shuffle(this.state.allQuestions.slice()).slice(0, this.state.questionCount),
       gameState: GameState.SEND_QUESTION,
       answers: [],
-      activeClient: this.state.clients[0].clientId,
+      activeClient: this.state.clients.length ? this.state.clients[0].clientId : '',
     });
 
     const gameStartMessage: GameStartMessage = {
