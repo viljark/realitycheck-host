@@ -175,7 +175,7 @@ export class App extends React.Component<AppProps, State> {
   };
 
   handleANSWER = (e: Message<ClientAnswerMessage>) => {
-    if (this.state.gameState !== GameState.WAITING_ANSWER) {
+    if (this.state.gameState !== GameState.WAITING_ANSWER || e.sender !== this.state.activeClient) {
       return;
     }
 
@@ -244,6 +244,8 @@ export class App extends React.Component<AppProps, State> {
     this.setState({
       questions: shuffle(this.state.allQuestions.slice()).slice(0, this.state.questionCount),
       gameState: GameState.SEND_QUESTION,
+      answers: [],
+      activeClient: this.state.clients[0].clientId,
     });
 
     const gameStartMessage: GameStartMessage = {
