@@ -43,11 +43,7 @@ any config/setup issues? see https://github.com/viljark/eesti-ilm
     - Handle `Message<GameClientJoinedMessage>`, you'll receive `Client[]`as value (list of players)
     - Handle `Message<GameClientLeftMessage>`, you'll receive `Client[]`as value (list of players)
     - Handle `Message<GameStartMessage>`, you'll receive `Client[]`as value (list of players)
-    - Handle `Message<GameQuestionMessage>`, you'll receive ``{
-                                                       to: string,
-                                                       question: string,
-                                                       players: Client[]
-                                                     }`` as response, where 
+    - Handle `Message<GameQuestionMessage>`, you'll receive ``Question`` as response, where 
                                                     
         - to: player who this question is addressed
         - question: question text

@@ -33,7 +33,6 @@ enum GameState {
 }
 
 export interface State {
-  message: string;
   events: PubNub.MessageEvent[];
   clients: Client[];
   questions: string[];
@@ -61,7 +60,6 @@ export class App extends React.Component<AppProps, State> {
       uuid: this.uuid
     });
     this.state = {
-      message: '',
       events: [],
       clients: [],
       questions: [],
@@ -216,27 +214,6 @@ export class App extends React.Component<AppProps, State> {
       //Handle error here
     });
   };
-
-  handleEnter = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    const key = e.key;
-    if (key === 'Enter') {
-      e.preventDefault();
-      this.send({
-        type: GameEvent.TEST,
-        value: this.state.message,
-      });
-      this.setState({
-        message: '',
-      });
-    }
-  }
-
-  handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    this.setState({
-      message: e.target.value,
-    });
-  }
-
 
   handleClientRemove = (client: Client) => {
     this.setState({
@@ -437,7 +414,6 @@ export class App extends React.Component<AppProps, State> {
               ))}
             </div>
           </div>
-          <textarea onChange={this.handleChange} value={this.state.message} onKeyDown={this.handleEnter}/>
           <button onClick={this.startGame}>Start</button>
           <Game channelId={this.channelId} name="Test 1"/>
           <Game channelId={this.channelId} name="Test 2"/>

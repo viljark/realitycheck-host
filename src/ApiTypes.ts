@@ -20,12 +20,13 @@ export interface Message<T> {
   content: T;
 }
 
-
-export type GameQuestionMessage = MessageContent<{
+export interface Question {
   to: string,
   question: string,
   players: Client[]
-}>
+}
+
+export type GameQuestionMessage = MessageContent<Question>
 
 export type GameStartMessage = MessageContent<Client[]>
 
