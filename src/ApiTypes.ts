@@ -60,5 +60,6 @@ export interface Client {
 
 export interface Answer {
   clientId: string,
-  question: string
+  question: string,
+  name: string,
 }

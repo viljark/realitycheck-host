@@ -178,10 +178,11 @@ export class App extends React.Component<AppProps, State> {
     if (this.state.gameState !== GameState.WAITING_ANSWER || e.sender !== this.state.activeClient) {
       return;
     }
-
+    const client = this.state.clients.find((c) => c.clientId === e.content.value.clientId);
     const answer: Answer = {
       question: this.state.activeQuestion,
-      clientId: e.content.value.clientId
+      clientId: e.content.value.clientId,
+      name: client ? client.name : 'Unknown playa',
     };
     this.setState({
       gameState: GameState.DISPLAY_ANSWER,
